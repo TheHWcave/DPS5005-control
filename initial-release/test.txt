@@ -1,0 +1,42 @@
+# program to showcase the use of some of the commands
+# It ramps the voltage up in 1V steps to 5 V, calls a measurement
+# script, takes a picture and then ramps down in 0.5V steps to 0
+#
+
+	output	OFF 	# start by turning power off to be sure 
+	max	V 5.1	# set over-voltage protection 5.1 Volt 
+	max	C 0.8	# set over-current protection 800 mA
+	max	P 100	# set over-power protection 100W (just kidding)
+	record  3 0	# turn recording on to record change
+	set	V 1.0	# set output voltage to 1V
+	set	C 0.5	# set output current limit to 0.5A
+
+# all presets done
+
+	output 	ON	# turn power on
+	if	C > 0.01 # wait here until something is connected that draws at least 10 mA
+	wait	0
+
+	# ramp output voltage up in 1V steps until we reach 5V
+
+UP:	inc	V 1.0	
+	wait	1	
+	if	V < 4.9 # still less that upper limit ?
+	goto	UP 	# yes, do more incrementing
+	
+
+	# Keep peak voltage for bit and take some measurements and a picture 
+
+	wait	4.0
+
+	call	'./measure.sh' ' >$F'  # linux
+	#call	'measure.bat'  ' >$F'  # windows
+	call	'ffmpeg -i /dev/video0 -vframes 1 -loglevel quiet -y' ' ${R}_$N.jpeg'  # linux
+	#call    'ffmpeg -f dshow -i video="Logitech HD Pro Webcam C920" -vframes 1 -loglevel quiet -y' ' ${R}_$N.jpg'  # windows
+	# ramp output voltage down in 0.5V steps until we are below 1V
+			
+DOWN:	inc	V -0.5 
+	if	V >= 0.49 # still above 0 ?
+	goto	DOWN	# yes, do more decrementing
+
+END:	output	OFF	# end of program. turn off. 
